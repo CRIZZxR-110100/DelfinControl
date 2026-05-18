@@ -12,14 +12,17 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TareaDAO {
     @Insert (onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(tarea: Tarea)
+    suspend fun registrarTarea(tarea: Tarea)
 
     @Update
-    suspend fun actualizar(tarea: Tarea)
+    suspend fun modificarTarea(tarea: Tarea)
 
-    @Delete
-    suspend fun eliminar(tarea: Tarea)
+    @Query ("UPDATE tareas SET estado = :estado WHERE tareaId = :id")
+    suspend fun cambiarEstado(id: Int, estado: Boolean)
 
-    @Query ("SELECT * FROM tareas ORDER BY fechaDatetime DESC")
-    fun obtenerTodas(): Flow<List<Tarea>>
+    @Query ("SELECT * FROM tareas WHERE asignaturaId = :asignatura")
+    fun obtenerTareas(asignatura: Int): Flow<List<Tarea>>
+
+    @Query("SELECT * FROM tareas WHERE estado = 0 AND asignaturaId = :asignatura")
+    fun obtenerPendientes(asignatura: Int): Flow<List<Tarea>>
 }

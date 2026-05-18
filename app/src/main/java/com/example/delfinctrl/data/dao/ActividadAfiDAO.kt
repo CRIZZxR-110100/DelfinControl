@@ -12,14 +12,14 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ActividadAfiDAO {
     @Insert (onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(actividadAFI: ActividadAFI)
+    suspend fun registrarAsistencia(actividadAFI: ActividadAFI)
 
     @Update
-    suspend fun actualizar(actividadAFI: ActividadAFI)
+    suspend fun actualizarActividad(actividadAFI: ActividadAFI)
 
     @Delete
-    suspend fun eliminar(actividadAFI: ActividadAFI)
+    suspend fun eliminarActividad(actividadAFI: ActividadAFI)
 
-    @Query ("SELECT * FROM actividades_afi ORDER BY fecha")
-    fun obtenerTodas(): Flow<List<ActividadAFI>>
+    @Query ("SELECT IFNULL(SUM(horas), 0) FROM actividades_afi")
+    fun calcularHorasAFI(): Flow<List<Int>>
 }

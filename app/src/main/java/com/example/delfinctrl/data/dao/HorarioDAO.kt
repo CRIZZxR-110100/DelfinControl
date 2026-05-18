@@ -12,14 +12,11 @@ import com.example.delfinctrl.data.model.Horario
 @Dao
 interface HorarioDAO {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(horario: Horario)
+    suspend fun registrarHorario(horario: Horario)
 
     @Update
-    suspend fun actualizar(horario: Horario)
+    suspend fun actualizarHorario(horario: Horario)
 
     @Delete
-    suspend fun eliminar(horario: Horario)
-
-    @Query("SELECT * FROM horarios ORDER BY fechaInicio DESC")
-    fun obtenerTodos(): Flow<List<Horario>>
+    suspend fun eliminarHorario(horario: Horario)
 }
