@@ -12,6 +12,6 @@ data class Estudiante(
     val institucion: String,
     val facultad: String,
     val programa_educativo: String,
-    val afis_requeridas: Int,
-    val creditos_requeridos: Int
+    val afis_requeridas: Int? = null,
+    val creditos_requeridos: Int? = null
 )

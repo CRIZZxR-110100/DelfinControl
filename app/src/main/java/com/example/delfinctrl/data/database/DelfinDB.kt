@@ -35,7 +35,7 @@ import com.example.delfinctrl.data.model.Tarea
         Calificacion::class,
         AsignaturaHorario::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class DelfinDB : RoomDatabase() {
@@ -59,7 +59,9 @@ abstract class DelfinDB : RoomDatabase() {
                     context.applicationContext,
                     DelfinDB::class.java,
                     "delfin_db"
-                ).build().also { INSTANCE = it }
+                )
+                .fallbackToDestructiveMigration(dropAllTables = true)
+                .build().also { INSTANCE = it }
             }
         }
     }
