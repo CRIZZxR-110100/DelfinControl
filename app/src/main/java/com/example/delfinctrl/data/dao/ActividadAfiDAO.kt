@@ -21,5 +21,8 @@ interface ActividadAfiDAO {
     suspend fun eliminarActividad(actividadAFI: ActividadAFI)
 
     @Query ("SELECT IFNULL(SUM(horas), 0) FROM actividades_afi")
-    fun calcularHorasAFI(): Flow<List<Int>>
+    fun calcularHorasAFI(): Flow<Int>
+
+    @Query ("SELECT * FROM actividades_afi ORDER BY fecha DESC")
+    fun obtenerTodas(): Flow<List<ActividadAFI>>
 }

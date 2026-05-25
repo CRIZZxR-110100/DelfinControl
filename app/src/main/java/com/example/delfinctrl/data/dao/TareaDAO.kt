@@ -25,4 +25,10 @@ interface TareaDAO {
 
     @Query("SELECT * FROM tareas WHERE estado = 0 AND asignaturaId = :asignatura")
     fun obtenerPendientes(asignatura: Int): Flow<List<Tarea>>
+
+    @Query("SELECT * FROM tareas ORDER BY fechaDatetime ASC")
+    fun obtenerTodas(): Flow<List<Tarea>>
+
+    @Delete
+    suspend fun eliminarTarea(tarea: Tarea)
 }

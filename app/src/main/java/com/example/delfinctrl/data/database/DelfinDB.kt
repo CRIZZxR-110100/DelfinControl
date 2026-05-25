@@ -35,7 +35,7 @@ import com.example.delfinctrl.data.model.Tarea
         Calificacion::class,
         AsignaturaHorario::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class DelfinDB : RoomDatabase() {

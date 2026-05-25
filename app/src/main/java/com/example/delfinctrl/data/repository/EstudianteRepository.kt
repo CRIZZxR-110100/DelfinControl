@@ -13,4 +13,8 @@ class EstudianteRepository (
     suspend fun registrarEstudiante(estudiante: Estudiante) {
         estudianteDAO.insertar(estudiante)
     }
+
+    suspend fun eliminarEstudiante(estudiante: Estudiante) {
+        estudianteDAO.eliminar(estudiante)
+    }
 }

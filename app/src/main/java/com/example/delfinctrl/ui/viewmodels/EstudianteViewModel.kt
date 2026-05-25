@@ -23,4 +23,10 @@ class EstudianteViewModel(private val repository: EstudianteRepository) : ViewMo
             repository.registrarEstudiante(estudiante)
         }
     }
+
+    fun eliminarEstudiante(estudiante: Estudiante) {
+        viewModelScope.launch {
+            repository.eliminarEstudiante(estudiante)
+        }
+    }
 }

@@ -19,4 +19,7 @@ interface HorarioDAO {
 
     @Delete
     suspend fun eliminarHorario(horario: Horario)
+
+    @Query("SELECT * FROM horarios ORDER BY fechaInicio DESC")
+    fun obtenerTodos(): Flow<List<Horario>>
 }

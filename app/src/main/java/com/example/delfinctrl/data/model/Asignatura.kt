@@ -12,10 +12,17 @@ import androidx.room.Index
             parentColumns = ["asignaturaId"],
             childColumns = ["previa"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = Docente::class,
+            parentColumns = ["docenteId"],
+            childColumns = ["docenteId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
     indices = [
-        Index("previa")
+        Index("previa"),
+        Index("docenteId")
     ]
 )
 data class Asignatura(
@@ -24,5 +31,6 @@ data class Asignatura(
 
     val nombre: String,
     val previa: Int? = null,
-    val creditos: Int = 0
+    val creditos: Int = 0,
+    val docenteId: String? = null
 )
