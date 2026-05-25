@@ -2,7 +2,6 @@ package com.example.delfinctrl.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,14 +36,18 @@ import com.example.delfinctrl.ui.viewmodels.ActividadAfiViewModel
 @Composable
 fun EstudianteFormulario(
     onGuardar: (Estudiante) -> Unit,
+    estudianteToEdit: Estudiante? = null,
     modifier: Modifier = Modifier
 ) {
-    var matricula by rememberSaveable { mutableStateOf("") }
-    var nombre by rememberSaveable { mutableStateOf("") }
-    var apellidos by rememberSaveable { mutableStateOf("") }
-    var institucion by rememberSaveable { mutableStateOf("") }
-    var facultad by rememberSaveable { mutableStateOf("") }
-    var programaEducativo by rememberSaveable { mutableStateOf("") }
+    var matricula by rememberSaveable { mutableStateOf(estudianteToEdit?.estudianteId ?: "") }
+    var nombre by rememberSaveable { mutableStateOf(estudianteToEdit?.nombre ?: "") }
+    var apellidos by rememberSaveable { mutableStateOf(estudianteToEdit?.apellidos ?: "") }
+    var institucion by rememberSaveable { mutableStateOf(estudianteToEdit?.institucion ?: "") }
+    var facultad by rememberSaveable { mutableStateOf(estudianteToEdit?.facultad ?: "") }
+    var programaEducativo by rememberSaveable { mutableStateOf(estudianteToEdit?.programa_educativo ?: "") }
+
+    var creditosRequeridos by rememberSaveable { mutableStateOf("120") }
+    var afisRequeridas by rememberSaveable { mutableStateOf("20") }
 
     val formularioValido = listOf(
         matricula,
@@ -52,7 +55,9 @@ fun EstudianteFormulario(
         apellidos,
         institucion,
         facultad,
-        programaEducativo
+        programaEducativo,
+        creditosRequeridos,
+        afisRequeridas
     ).all { it.isNotBlank() }
 
     val backgroundBrush = Brush.verticalGradient(
@@ -245,6 +250,48 @@ fun EstudianteFormulario(
                     shape = RoundedCornerShape(12.dp)
                 )
 
+                // Campo Créditos Requeridos
+                OutlinedTextField(
+                    value = creditosRequeridos,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) creditosRequeridos = it },
+                    label = { Text("Créditos Requeridos") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                // Campo AFIs Requeridas
+                OutlinedTextField(
+                    value = afisRequeridas,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) afisRequeridas = it },
+                    label = { Text("AFIs Requeridas") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // Botón Iniciar Sesión
@@ -258,8 +305,8 @@ fun EstudianteFormulario(
                                 institucion = institucion.trim(),
                                 facultad = facultad.trim(),
                                 programa_educativo = programaEducativo.trim(),
-                                creditos_requeridos = 120,
-                                afis_requeridas = 20
+                                creditos_requeridos = if (estudianteToEdit == null) creditosRequeridos.toIntOrNull() ?: 120 else estudianteToEdit.creditos_requeridos,
+                                afis_requeridas = if (estudianteToEdit == null) afisRequeridas.toIntOrNull() ?: 20 else estudianteToEdit.afis_requeridas
                             )
                         )
                     },
@@ -284,7 +331,7 @@ fun EstudianteFormulario(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Iniciar sesión",
+                            text = if (estudianteToEdit == null) "Registrar Perfil" else "Guardar Cambios",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -295,14 +342,19 @@ fun EstudianteFormulario(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EstudianteDetalle(
     estudiante: Estudiante,
     totalCreditos: Int,
     totalAfi: Int,
-    onCerrarSesion: () -> Unit,
+    onActualizarLimites: (Int, Int) -> Unit,
+    onActualizarPerfil: (Estudiante) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showEditLimitsBottomSheet by remember { mutableStateOf(false) }
+    var showEditProfileBottomSheet by remember { mutableStateOf(false) }
+
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
@@ -346,12 +398,21 @@ fun EstudianteDetalle(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Progreso Académico",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Progreso Académico",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        TextButton(onClick = { showEditLimitsBottomSheet = true }) {
+                            Text("Editar límites")
+                        }
+                    }
 
                     // Barra de Progreso de Créditos
                     val reqCreditos = estudiante.creditos_requeridos ?: 120
@@ -361,7 +422,7 @@ fun EstudianteDetalle(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "Créditos Obtenidos", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Text(text = "Créditos Aprobados", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                             Text(
                                 text = "$totalCreditos / $reqCreditos (${(pctCreditos * 100).toInt()}%)",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -425,19 +486,87 @@ fun EstudianteDetalle(
                 }
             }
 
-            OutlinedButton(
-                onClick = onCerrarSesion,
+            Button(
+                onClick = { showEditProfileBottomSheet = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Cerrar sesión", fontWeight = FontWeight.SemiBold)
+                Text("Editar Perfil", fontWeight = FontWeight.SemiBold)
             }
+        }
+    }
+
+    if (showEditLimitsBottomSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        var newCreditos by remember { mutableStateOf((estudiante.creditos_requeridos ?: 120).toString()) }
+        var newAfis by remember { mutableStateOf((estudiante.afis_requeridas ?: 20).toString()) }
+
+        ModalBottomSheet(
+            onDismissRequest = { showEditLimitsBottomSheet = false },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Editar Límites",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                OutlinedTextField(
+                    value = newCreditos,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) newCreditos = it },
+                    label = { Text("Créditos Requeridos") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = newAfis,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) newAfis = it },
+                    label = { Text("AFIs Requeridas") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Button(
+                    onClick = {
+                        val creds = newCreditos.toIntOrNull() ?: 120
+                        val afis = newAfis.toIntOrNull() ?: 20
+                        onActualizarLimites(creds, afis)
+                        showEditLimitsBottomSheet = false
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Guardar Cambios")
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
+
+    if (showEditProfileBottomSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showEditProfileBottomSheet = false },
+            sheetState = sheetState,
+            modifier = Modifier.fillMaxHeight(0.95f)
+        ) {
+            EstudianteFormulario(
+                onGuardar = { updatedEstudiante ->
+                    onActualizarPerfil(updatedEstudiante)
+                    showEditProfileBottomSheet = false
+                },
+                estudianteToEdit = estudiante
+            )
         }
     }
 }
@@ -491,17 +620,30 @@ fun ProfileScreen(
     actividadAfiViewModel: ActividadAfiViewModel,
     modifier: Modifier = Modifier
 ) {
-    val estudiante by estudianteViewModel.estudianteState.collectAsState()
+    val uiState by estudianteViewModel.uiState.collectAsState()
     val totalCreditos by asignaturaViewModel.creditosTotalesState.collectAsState()
     val totalAfi by actividadAfiViewModel.horasAfiTotalesState.collectAsState()
 
-    estudiante?.let { datosEstudiante ->
-        EstudianteDetalle(
-            estudiante = datosEstudiante,
-            totalCreditos = totalCreditos,
-            totalAfi = totalAfi,
-            onCerrarSesion = { estudianteViewModel.eliminarEstudiante(datosEstudiante) },
-            modifier = modifier
-        )
+    if (uiState is com.example.delfinctrl.ui.viewmodels.EstudianteUiState.Success) {
+        val estudiante = (uiState as com.example.delfinctrl.ui.viewmodels.EstudianteUiState.Success).estudiante
+        estudiante?.let { datosEstudiante ->
+            EstudianteDetalle(
+                estudiante = datosEstudiante,
+                totalCreditos = totalCreditos,
+                totalAfi = totalAfi,
+                onActualizarLimites = { creditos, afis ->
+                    estudianteViewModel.actualizarEstudiante(
+                        datosEstudiante.copy(
+                            creditos_requeridos = creditos,
+                            afis_requeridas = afis
+                        )
+                    )
+                },
+                onActualizarPerfil = { updatedEstudiante ->
+                    estudianteViewModel.actualizarEstudiante(updatedEstudiante)
+                },
+                modifier = modifier
+            )
+        }
     }
 }

@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TareaDAO {
     @Insert (onConflict = OnConflictStrategy.REPLACE)
-    suspend fun registrarTarea(tarea: Tarea)
+    suspend fun registrarTarea(tarea: Tarea): Long
 
     @Update
     suspend fun modificarTarea(tarea: Tarea)

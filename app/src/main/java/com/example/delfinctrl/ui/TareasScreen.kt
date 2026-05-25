@@ -1,14 +1,16 @@
 package com.example.delfinctrl.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,44 +18,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.delfinctrl.data.model.Asignatura
-import com.example.delfinctrl.data.model.Tarea
 import com.example.delfinctrl.ui.viewmodels.AsignaturaViewModel
-import com.example.delfinctrl.ui.viewmodels.TareaViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TareasScreen(
-    tareaViewModel: TareaViewModel,
     asignaturaViewModel: AsignaturaViewModel,
     modifier: Modifier = Modifier
 ) {
-    val tareas by tareaViewModel.tareasState.collectAsState()
+    val tareas by asignaturaViewModel.tareasState.collectAsState()
     val asignaturas by asignaturaViewModel.asignaturasState.collectAsState()
 
-    var titulo by remember { mutableStateOf("") }
-    var nota by remember { mutableStateOf("") }
-    var fechaStr by remember {
-        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        mutableStateOf(sdf.format(Date()))
-    }
-    var selectedAsignatura by remember { mutableStateOf<Asignatura?>(null) }
-    var expandedAsignatura by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var tareaToEdit by remember { mutableStateOf<com.example.delfinctrl.data.model.Tarea?>(null) }
+    var showAddTarea by remember { mutableStateOf(false) }
 
-    // Estado de filtros
+    // Lógica para filtrar tareas según el estado (pendientes/completadas) y la materia
     var filtroEstado by remember { mutableStateOf("Todas") } // "Todas", "Pendientes", "Completadas"
     var filtroAsignatura by remember { mutableStateOf<Asignatura?>(null) }
     var expandedFiltroAsignatura by remember { mutableStateOf(false) }
-
-    // Al cargar o cambiar materias, seleccionar la primera por defecto para el formulario
-    LaunchedEffect(asignaturas) {
-        if (selectedAsignatura == null && asignaturas.isNotEmpty()) {
-            selectedAsignatura = asignaturas.first()
-        }
-    }
 
     val tareasFiltradas = tareas.filter { tarea ->
         val cumpleEstado = when (filtroEstado) {
@@ -79,6 +67,16 @@ fun TareasScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
+        },
+        floatingActionButton = {
+            if (asignaturas.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = { showAddTarea = true },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Agregar Tarea")
+                }
+            }
         }
     ) { innerPadding ->
         Column(
@@ -114,188 +112,97 @@ fun TareasScreen(
                     }
                 }
             } else {
-                // Formulario de agregar tarea
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Sección de Filtros
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Agregar Nueva Tarea",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            text = "Filtrar Tareas",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
                         )
-
-                        OutlinedTextField(
-                            value = titulo,
-                            onValueChange = { titulo = it },
-                            label = { Text("Título de la Tarea") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = nota,
-                            onValueChange = { nota = it },
-                            label = { Text("Notas / Descripción (opcional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = false,
-                            maxLines = 3,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = fechaStr,
-                                onValueChange = { fechaStr = it },
-                                label = { Text("Fecha (dd/mm/yyyy)") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-
-                            // Dropdown para materia vinculada
-                            Box(modifier = Modifier.weight(1f)) {
-                                OutlinedTextField(
-                                    value = selectedAsignatura?.nombre ?: "Seleccionar",
-                                    onValueChange = {},
-                                    label = { Text("Materia") },
-                                    readOnly = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    trailingIcon = {
-                                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                                    },
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .clickable { expandedAsignatura = true }
-                                )
-
-                                DropdownMenu(
-                                    expanded = expandedAsignatura,
-                                    onDismissRequest = { expandedAsignatura = false }
-                                ) {
-                                    asignaturas.forEach { asignatura ->
-                                        DropdownMenuItem(
-                                            text = { Text(asignatura.nombre) },
-                                            onClick = {
-                                                selectedAsignatura = asignatura
-                                                expandedAsignatura = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Button(
+                        OutlinedButton(
                             onClick = {
-                                val parsedDate = try {
-                                    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                    sdf.parse(fechaStr)?.time ?: System.currentTimeMillis()
-                                } catch (e: Exception) {
-                                    System.currentTimeMillis()
-                                }
+                                val builder = androidx.core.app.NotificationCompat.Builder(context, "TAREAS_CHANNEL")
+                                    .setSmallIcon(com.example.delfinctrl.R.mipmap.ic_launcher)
+                                    .setContentTitle("Prueba de Notificación")
+                                    .setContentText("¡Las notificaciones están funcionando correctamente!")
+                                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                                    .setAutoCancel(true)
 
-                                if (titulo.isNotBlank() && selectedAsignatura != null) {
-                                    tareaViewModel.guardarTarea(
-                                        titulo = titulo.trim(),
-                                        fecha = parsedDate,
-                                        nota = nota.trim(),
-                                        asignaturaId = selectedAsignatura!!.asignaturaId
-                                    )
-                                    titulo = ""
-                                    nota = ""
+                                if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    androidx.core.app.NotificationManagerCompat.from(context).notify(999, builder.build())
                                 }
                             },
-                            enabled = titulo.isNotBlank() && selectedAsignatura != null,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Text("Guardar Tarea")
+                            Text("Probar Notificaciones", style = MaterialTheme.typography.labelSmall)
                         }
                     }
-                }
-            }
 
-            // Sección de Filtros
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Filtrar Tareas",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Selector de Estado (Filtro)
-                    val opcionesEstado = listOf("Todas", "Pendientes", "Completadas")
-                    opcionesEstado.forEach { opcion ->
-                        FilterChip(
-                            selected = filtroEstado == opcion,
-                            onClick = { filtroEstado = opcion },
-                            label = { Text(opcion) }
-                        )
-                    }
-                }
-
-                // Selector de Asignatura (Filtro)
-                if (asignaturas.isNotEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedCard(
-                            onClick = { expandedFiltroAsignatura = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (filtroAsignatura == null) "Todas las materias" else "Materia: ${filtroAsignatura!!.nombre}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = expandedFiltroAsignatura,
-                            onDismissRequest = { expandedFiltroAsignatura = false },
-                            modifier = Modifier.fillMaxWidth(0.9f)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Todas las materias") },
-                                onClick = {
-                                    filtroAsignatura = null
-                                    expandedFiltroAsignatura = false
-                                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Selector de Estado (Filtro)
+                        val opcionesEstado = listOf("Todas", "Pendientes", "Completadas")
+                        opcionesEstado.forEach { opcion ->
+                            FilterChip(
+                                selected = filtroEstado == opcion,
+                                onClick = { filtroEstado = opcion },
+                                label = { Text(opcion) }
                             )
-                            asignaturas.forEach { asignatura ->
+                        }
+                    }
+
+                    // Selector de Asignatura (Filtro)
+                    if (asignaturas.isNotEmpty()) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedCard(
+                                onClick = { expandedFiltroAsignatura = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (filtroAsignatura == null) "Todas las materias" else "Materia: ${filtroAsignatura!!.nombre}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = expandedFiltroAsignatura,
+                                onDismissRequest = { expandedFiltroAsignatura = false },
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(asignatura.nombre) },
+                                    text = { Text("Todas las materias") },
                                     onClick = {
-                                        filtroAsignatura = asignatura
+                                        filtroAsignatura = null
                                         expandedFiltroAsignatura = false
                                     }
                                 )
+                                asignaturas.forEach { asignatura ->
+                                    DropdownMenuItem(
+                                        text = { Text(asignatura.nombre) },
+                                        onClick = {
+                                            filtroAsignatura = asignatura
+                                            expandedFiltroAsignatura = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -340,7 +247,7 @@ fun TareasScreen(
                                 Checkbox(
                                     checked = tarea.estado,
                                     onCheckedChange = { check ->
-                                        tareaViewModel.cambiarEstadoTarea(tarea.tareaId, check)
+                                        asignaturaViewModel.cambiarEstadoTarea(tarea.tareaId, check)
                                     }
                                 )
 
@@ -383,17 +290,184 @@ fun TareasScreen(
                                 }
                             }
 
-                            IconButton(onClick = { tareaViewModel.eliminarTarea(tarea) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Eliminar tarea",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                            Row {
+                                IconButton(onClick = { 
+                                    tareaToEdit = tarea
+                                    showAddTarea = true
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Editar tarea",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(onClick = { asignaturaViewModel.eliminarTarea(tarea, context) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Eliminar tarea",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    if (showAddTarea) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { 
+                showAddTarea = false
+                tareaToEdit = null
+            },
+            sheetState = sheetState
+        ) {
+            AgregarTareaForm(asignaturaViewModel, asignaturas, tareaToEdit) { 
+                showAddTarea = false
+                tareaToEdit = null
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AgregarTareaForm(
+    asignaturaViewModel: AsignaturaViewModel,
+    asignaturas: List<Asignatura>,
+    tareaToEdit: com.example.delfinctrl.data.model.Tarea? = null,
+    onDismiss: () -> Unit
+) {
+    var titulo by remember(tareaToEdit) { mutableStateOf(tareaToEdit?.titulo ?: "") }
+    var nota by remember(tareaToEdit) { mutableStateOf(tareaToEdit?.nota ?: "") }
+    
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = tareaToEdit?.fechaDatetime ?: System.currentTimeMillis())
+    var showDatePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val fechaElegida = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+    val fechaStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(fechaElegida))
+
+    var selectedAsignatura by remember(tareaToEdit) { 
+        mutableStateOf(if (tareaToEdit != null) asignaturas.find { it.asignaturaId == tareaToEdit.asignaturaId } else asignaturas.firstOrNull()) 
+    }
+    var expandedAsignatura by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = if (tareaToEdit == null) "Agregar Nueva Tarea" else "Editar Tarea",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        OutlinedTextField(
+            value = titulo,
+            onValueChange = { titulo = it },
+            label = { Text("Título de la Tarea") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = nota,
+            onValueChange = { nota = it },
+            label = { Text("Notas / Descripción (opcional)") },
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 3
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = fechaStr,
+                    onValueChange = {},
+                    label = { Text("Fecha") },
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) }
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = selectedAsignatura?.nombre ?: "Seleccionar",
+                    onValueChange = {},
+                    label = { Text("Materia") },
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { expandedAsignatura = true })
+
+                DropdownMenu(expanded = expandedAsignatura, onDismissRequest = { expandedAsignatura = false }) {
+                    asignaturas.forEach { asignatura ->
+                        DropdownMenuItem(
+                            text = { Text(asignatura.nombre) },
+                            onClick = {
+                                selectedAsignatura = asignatura
+                                expandedAsignatura = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Button(
+            onClick = {
+                if (titulo.isNotBlank() && selectedAsignatura != null) {
+                    if (tareaToEdit == null) {
+                        asignaturaViewModel.guardarTarea(
+                            titulo = titulo.trim(),
+                            fecha = fechaElegida,
+                            nota = nota.trim(),
+                            asignaturaId = selectedAsignatura!!.asignaturaId,
+                            context = context
+                        )
+                    } else {
+                        asignaturaViewModel.actualizarTarea(
+                            tareaToEdit.copy(
+                                titulo = titulo.trim(),
+                                fechaDatetime = fechaElegida,
+                                nota = nota.trim(),
+                                asignaturaId = selectedAsignatura!!.asignaturaId
+                            ),
+                            context = context
+                        )
+                    }
+                    onDismiss()
+                }
+            },
+            enabled = titulo.isNotBlank() && selectedAsignatura != null,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (tareaToEdit == null) "Guardar Tarea" else "Guardar Cambios")
+        }
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

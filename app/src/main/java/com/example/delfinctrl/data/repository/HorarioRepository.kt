@@ -42,4 +42,8 @@ class HorarioRepository(
     suspend fun eliminarClaseDeHorario(asignaturaHorario: AsignaturaHorario) {
         asignaturaHorarioDAO.eliminarAsignatura(asignaturaHorario)
     }
+
+    suspend fun verificarConflictoHorario(idHorario: Int, dia: Int, inicio: Int, termino: Int): Boolean {
+        return asignaturaHorarioDAO.contarConflictos(idHorario, dia, inicio, termino) > 0
+    }
 }

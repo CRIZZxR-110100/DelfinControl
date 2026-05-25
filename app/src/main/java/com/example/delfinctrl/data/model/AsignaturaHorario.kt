@@ -4,8 +4,9 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 
+import androidx.room.PrimaryKey
+
 @Entity(tableName = "asignatura_horario",
-    primaryKeys = ["horarioId", "asignaturaId"],
     foreignKeys = [
         ForeignKey(
             entity = Horario::class,
@@ -26,9 +27,11 @@ import androidx.room.Index
     ]
 )
 data class AsignaturaHorario(
+    @PrimaryKey(autoGenerate = true) val claseId: Int = 0,
     val horarioId: Int,
     val asignaturaId: Int,
     val dia: Int = 0,
     val inicio: Int,
-    val fin: Int
+    val fin: Int,
+    val salon: String? = null
 )

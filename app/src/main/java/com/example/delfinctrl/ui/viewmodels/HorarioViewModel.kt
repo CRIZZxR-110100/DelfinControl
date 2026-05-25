@@ -63,14 +63,15 @@ class HorarioViewModel(private val repository: HorarioRepository) : ViewModel() 
         }
     }
 
-    fun agregarClase(horarioId: Int, asignaturaId: Int, dia: Int, inicio: Int, fin: Int) {
+    fun agregarClase(horarioId: Int, asignaturaId: Int, dia: Int, inicio: Int, fin: Int, salon: String?) {
         viewModelScope.launch {
             val nuevaClase = AsignaturaHorario(
                 horarioId = horarioId,
                 asignaturaId = asignaturaId,
                 dia = dia,
                 inicio = inicio,
-                fin = fin
+                fin = fin,
+                salon = salon
             )
             repository.agregarClaseAHorario(nuevaClase)
         }
@@ -79,6 +80,12 @@ class HorarioViewModel(private val repository: HorarioRepository) : ViewModel() 
     fun eliminarClase(asignaturaHorario: AsignaturaHorario) {
         viewModelScope.launch {
             repository.eliminarClaseDeHorario(asignaturaHorario)
+        }
+    }
+
+    fun actualizarClase(asignaturaHorario: AsignaturaHorario) {
+        viewModelScope.launch {
+            repository.actualizarClaseEnHorario(asignaturaHorario)
         }
     }
 }

@@ -12,14 +12,17 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CalificacionDAO {
     @Insert (onConflict = OnConflictStrategy.REPLACE)
-    suspend fun registrarCalificacion(calificacion: Calificacion)
+    suspend fun registrar(calificacion: Calificacion)
 
     @Update
-    suspend fun actualizarCalificacion(calificacion: Calificacion)
+    suspend fun actualizar(calificacion: Calificacion)
 
     @Delete
-    suspend fun eliminarCalificacion(calificacion: Calificacion)
+    suspend fun eliminar(calificacion: Calificacion)
 
     @Query ("SELECT * FROM calificaciones ORDER BY calificacionId ASC")
     fun obtenerTodas(): Flow<List<Calificacion>>
+
+    @Query("SELECT * FROM calificaciones WHERE asignaturaId = :asignaturaId ORDER BY fecha DESC")
+    fun obtenerPorAsignatura(asignaturaId: Int): Flow<List<Calificacion>>
 }

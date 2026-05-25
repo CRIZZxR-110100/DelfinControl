@@ -1,13 +1,15 @@
 package com.example.delfinctrl.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.delfinctrl.data.model.ActividadAFI
 import com.example.delfinctrl.ui.viewmodels.ActividadAfiViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -30,13 +31,7 @@ fun AfisScreen(
     val actividades by viewModel.actividadesState.collectAsState()
     val horasTotales by viewModel.horasAfiTotalesState.collectAsState()
 
-    var nombre by remember { mutableStateOf("") }
-    var fechaStr by remember {
-        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        mutableStateOf(sdf.format(Date()))
-    }
-    var lugar by remember { mutableStateOf("") }
-    var horasStr by remember { mutableStateOf("") }
+    var showAddAfi by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -48,6 +43,14 @@ fun AfisScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddAfi = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Agregar AFI")
+            }
         }
     ) { innerPadding ->
         Column(
@@ -57,96 +60,6 @@ fun AfisScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Formulario de Registro de AFI
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Registrar Nueva Actividad",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    OutlinedTextField(
-                        value = nombre,
-                        onValueChange = { nombre = it },
-                        label = { Text("Nombre del Evento / Conferencia") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = lugar,
-                        onValueChange = { lugar = it },
-                        label = { Text("Lugar (Opcional)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = fechaStr,
-                            onValueChange = { fechaStr = it },
-                            label = { Text("Fecha (dd/mm/yyyy)") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = horasStr,
-                            onValueChange = { horasStr = it },
-                            label = { Text("Horas Otorgadas") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            val horas = horasStr.toIntOrNull() ?: 0
-                            val parsedDate = try {
-                                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                sdf.parse(fechaStr)?.time ?: System.currentTimeMillis()
-                            } catch (e: Exception) {
-                                System.currentTimeMillis()
-                            }
-
-                            if (nombre.isNotBlank() && horas > 0) {
-                                viewModel.guardarActividad(
-                                    nombre = nombre.trim(),
-                                    fecha = parsedDate,
-                                    lugar = lugar.trim(),
-                                    horas = horas
-                                )
-                                nombre = ""
-                                lugar = ""
-                                horasStr = ""
-                            }
-                        },
-                        enabled = nombre.isNotBlank() && horasStr.isNotBlank() && (horasStr.toIntOrNull() ?: 0) > 0,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Registrar Horas AFI")
-                    }
-                }
-            }
-
             // Banner Sumatorio de Horas AFI
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -242,6 +155,122 @@ fun AfisScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (showAddAfi) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showAddAfi = false },
+            sheetState = sheetState
+        ) {
+            AgregarAfiForm(viewModel) { showAddAfi = false }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AgregarAfiForm(
+    viewModel: ActividadAfiViewModel,
+    onDismiss: () -> Unit
+) {
+    var nombre by remember { mutableStateOf("") }
+    var lugar by remember { mutableStateOf("") }
+    var horasStr by remember { mutableStateOf("") }
+
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val fechaElegida = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+    val fechaStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(fechaElegida))
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Registrar Nueva Actividad",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        OutlinedTextField(
+            value = nombre,
+            onValueChange = { nombre = it },
+            label = { Text("Nombre del Evento / Conferencia") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = lugar,
+            onValueChange = { lugar = it },
+            label = { Text("Lugar (Opcional)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = fechaStr,
+                    onValueChange = {},
+                    label = { Text("Fecha") },
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) }
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+            }
+
+            OutlinedTextField(
+                value = horasStr,
+                onValueChange = { horasStr = it },
+                label = { Text("Horas Otorgadas") },
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+        }
+
+        Button(
+            onClick = {
+                val horas = horasStr.toIntOrNull() ?: 0
+
+                if (nombre.isNotBlank() && horas > 0) {
+                    viewModel.guardarActividad(
+                        nombre = nombre.trim(),
+                        fecha = fechaElegida,
+                        lugar = lugar.trim(),
+                        horas = horas
+                    )
+                    onDismiss()
+                }
+            },
+            enabled = nombre.isNotBlank() && horasStr.isNotBlank() && (horasStr.toIntOrNull() ?: 0) > 0,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Registrar Horas AFI")
+        }
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

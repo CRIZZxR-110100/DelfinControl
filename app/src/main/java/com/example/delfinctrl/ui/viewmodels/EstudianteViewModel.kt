@@ -6,16 +6,23 @@ import com.example.delfinctrl.data.model.Estudiante
 import com.example.delfinctrl.data.repository.EstudianteRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+sealed interface EstudianteUiState {
+    data object Loading : EstudianteUiState
+    data class Success(val estudiante: Estudiante?) : EstudianteUiState
+}
+
 class EstudianteViewModel(private val repository: EstudianteRepository) : ViewModel() {
 
-    val estudianteState: StateFlow<Estudiante?> = repository.obtenerEstudiante()
+    val uiState: StateFlow<EstudianteUiState> = repository.obtenerEstudiante()
+        .map { EstudianteUiState.Success(it) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+            initialValue = EstudianteUiState.Loading
         )
 
     fun guardarEstudiante(estudiante: Estudiante) {
@@ -27,6 +34,12 @@ class EstudianteViewModel(private val repository: EstudianteRepository) : ViewMo
     fun eliminarEstudiante(estudiante: Estudiante) {
         viewModelScope.launch {
             repository.eliminarEstudiante(estudiante)
+        }
+    }
+
+    fun actualizarEstudiante(estudiante: Estudiante) {
+        viewModelScope.launch {
+            repository.actualizarEstudiante(estudiante)
         }
     }
 }

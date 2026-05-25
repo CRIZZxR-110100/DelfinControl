@@ -28,4 +28,7 @@ interface AsignaturaHorarioDAO {
 
     @Query("SELECT * FROM asignatura_horario WHERE dia = :dia")
     fun obtenerAsiganturasPorDia(dia: Int): Flow<List<AsignaturaHorario>>
+
+    @Query("SELECT COUNT(*) FROM asignatura_horario WHERE horarioId = :horarioId AND dia = :dia AND ((inicio < :fin AND fin > :inicio))")
+    suspend fun contarConflictos(horarioId: Int, dia: Int, inicio: Int, fin: Int): Int
 }

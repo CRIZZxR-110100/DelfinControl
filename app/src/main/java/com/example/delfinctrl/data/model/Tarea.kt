@@ -24,7 +24,6 @@ data class Tarea(
     val asignaturaId: Int,
     val titulo: String,
     val fechaDatetime: Long,
-    val rutaAdjunto: String,
     val nota: String,
     val estado: Boolean = false
 )

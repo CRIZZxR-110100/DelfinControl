@@ -35,7 +35,7 @@ import com.example.delfinctrl.data.model.Tarea
         Calificacion::class,
         AsignaturaHorario::class,
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class DelfinDB : RoomDatabase() {
@@ -53,6 +53,7 @@ abstract class DelfinDB : RoomDatabase() {
         @Volatile
         private var INSTANCE: DelfinDB? = null
 
+        // Singleton para evitar múltiples instancias de la base de datos abiertas al mismo tiempo
         fun getDatabase(context: Context): DelfinDB {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(

@@ -24,7 +24,13 @@ interface AsignaturaDAO {
     @Query("SELECT * FROM asignaturas ORDER BY nombre ASC")
     fun obtenerTodas(): Flow<List<Asignatura>>
 
-    // TODO: Terminar la lógica de la consulta SQLite
-    @Query("SELECT IFNULL(SUM(creditos), 0) FROM asignaturas")
+    @Query("""
+        SELECT IFNULL(SUM(creditos), 0) FROM asignaturas 
+        WHERE asignaturaId IN (
+            SELECT asignaturaId FROM calificaciones 
+            GROUP BY asignaturaId 
+            HAVING SUM(calif) >= 70
+        )
+    """)
     fun calcularCreditosTotales(): Flow<Int>
 }
